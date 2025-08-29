@@ -1,9 +1,9 @@
 # ==============================================
-# AMD64 Dockerfile - 基于 build-fullstack.sh 流程
+# Multi-Arch Dockerfile (AMD64 & ARM64) - 基于 build-fullstack.sh 流程
 # ==============================================
 
-# 前端构建阶段
-FROM node:20-alpine AS frontend-builder
+# -------- 前端构建阶段 --------
+FROM --platform=$BUILDPLATFORM node:20-alpine AS frontend-builder
 
 # 安装 yarn
 RUN apk add --no-cache yarn
@@ -27,20 +27,18 @@ RUN if [ -d "src/app/api" ]; then mv src/app/api /tmp/api-backup; fi && \
 
 # ==============================================
 
-# Go 构建阶段
-FROM golang:1.21-alpine AS go-builder
+# -------- Go 构建阶段 (multi-arch) --------
+FROM --platform=$BUILDPLATFORM golang:1.21-alpine AS go-builder
 
 # 安装构建依赖
 RUN apk add --no-cache git ca-certificates tzdata
 
 ENV GOPROXY=https://proxy.golang.org,direct
 ENV CGO_ENABLED=0
-ENV GOOS=linux
-ENV GOARCH=amd64
 
 WORKDIR /app
 
-# 先复制所有源代码（确保获取最新代码）
+# 复制源代码
 COPY . .
 
 # Go 依赖
@@ -50,13 +48,18 @@ RUN go mod download
 # 拷贝前端构建结果
 COPY --from=frontend-builder /app/chuan-next/out ./internal/web/frontend/
 
-# 构建 Go 应用 - AMD64 架构（模拟 build-fullstack.sh 的 build_backend 函数）
-RUN go build -ldflags='-s -w -extldflags '-static'' -o server ./cmd
+# 架构适配：根据目标平台设置 GOARCH/GOOS
+ARG TARGETOS
+ARG TARGETARCH
+
+# 构建 Go 应用 - 支持多架构
+RUN echo "Building for $TARGETOS/$TARGETARCH..." && \
+    GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH:-amd64} go build -ldflags='-s -w -extldflags "-static"' -o server ./cmd
 
 # ==============================================
 
-# 最终镜像
-FROM alpine:3.18
+# -------- 最终镜像 (multi-arch) --------
+FROM --platform=$TARGETPLATFORM alpine:3.18
 
 RUN apk add --no-cache ca-certificates tzdata && \
     adduser -D -s /bin/sh appuser
