@@ -3,6 +3,7 @@
 import React, { useRef, useEffect, useState, useCallback } from 'react';
 import { Monitor, Maximize, Minimize, Volume2, VolumeX, Settings, X, Play } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import {WebRTCManager} from "@/hooks";
 
 interface DesktopViewerProps {
   stream: MediaStream | null;
@@ -19,6 +20,7 @@ export default function DesktopViewer({
 }: DesktopViewerProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const managerRef = useRef<WebRTCManager | null>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
   const [showControls, setShowControls] = useState(true);
@@ -139,28 +141,29 @@ export default function DesktopViewer({
 
   // 监控视频统计信息
   useEffect(() => {
-    if (!videoRef.current) return;
+    const peerConnectionManager = managerRef.current?.getPeerConnection();
+    if (!peerConnectionManager) return;
 
-    const video = videoRef.current;
-    const updateStats = () => {
-      if (video.videoWidth && video.videoHeight) {
-        setVideoStats({
-          resolution: `${video.videoWidth}x${video.videoHeight}`,
-          fps: 0, // 实际FPS需要更复杂的计算
-        });
-      }
+    const updateStatsFromPeer = async () => {
+      const report: RTCStatsReport = await peerConnectionManager.getStats();
+      let resolution = '0x0';
+      let fps = 0;
+
+      report.forEach((stat) => {
+        if (stat.type === 'inbound-rtp' && stat.kind === 'video') {
+          if (typeof stat.frameWidth === 'number' && typeof stat.frameHeight === 'number') {
+            resolution = `${stat.frameWidth}x${stat.frameHeight}`;
+          }
+          if (typeof stat.framesPerSecond === 'number') {
+            fps = stat.framesPerSecond;
+          }
+        }
+      });
+      setVideoStats({ resolution, fps });
     };
 
-    video.addEventListener('loadedmetadata', updateStats);
-    video.addEventListener('resize', updateStats);
-
-    const interval = setInterval(updateStats, 1000);
-
-    return () => {
-      video.removeEventListener('loadedmetadata', updateStats);
-      video.removeEventListener('resize', updateStats);
-      clearInterval(interval);
-    };
+    const interval = setInterval(updateStatsFromPeer, 1000);
+    return () => clearInterval(interval);
   }, []);
 
   // 全屏相关处理
