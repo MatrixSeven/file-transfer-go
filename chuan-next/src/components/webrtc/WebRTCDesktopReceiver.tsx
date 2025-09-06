@@ -34,7 +34,7 @@ export default function WebRTCDesktopReceiver({ className, initialCode, onConnec
 
   // 加入观看
   const handleJoinViewing = useCallback(async () => {
-    const trimmedCode = inputCode.trim();
+    const trimmedCode = inputCode.trim().toUpperCase();
     
     // 检查房间代码格式
     if (!trimmedCode || trimmedCode.length !== 6) {
