@@ -26,7 +26,7 @@ const getCurrentBaseUrl = () => {
 
 // 动态获取 WebSocket URL - 总是在客户端运行时计算
 const getCurrentWsUrl = () => {
-  return "ws://192.168.1.120:8080"
+  // return "ws://192.168.1.120:8080"
   if (typeof window !== 'undefined') {
     // 检查是否是 Next.js 开发服务器（端口 3000 或 3001）
     const isNextDevServer = window.location.hostname === 'localhost' &&

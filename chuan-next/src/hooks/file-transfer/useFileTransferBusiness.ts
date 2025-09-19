@@ -385,17 +385,24 @@ export function useFileTransferBusiness(connection: IWebConnection) {
     retryCount = 0
   ): Promise<boolean> => {
     return new Promise((resolve) => {
-      // 主要检查数据通道状态，因为数据通道是文件传输的实际通道
+      // 改进数据传输前的连接状态检查
       const channelState = connection.getConnectState();
-      if (channelState.state === 'closed') {
-        console.warn(`数据通道已关闭，停止发送文件块 ${chunkIndex}`);
+      const isChannelUsable =
+        channelState.state === 'open' ||
+        channelState.isDataChannelConnected ||
+        channelState.isPeerConnected ||
+        (channelState.isWebSocketConnected && channelState.currentConnectType === 'websocket');
+
+      if (!isChannelUsable) {
+        console.warn(`数据块发送失败，传输通道不可用 ${chunkIndex}:`, {
+          state: channelState.state,
+          isDataChannelConnected: channelState.isDataChannelConnected,
+          isPeerConnected: channelState.isPeerConnected,
+          isWebSocketConnected: channelState.isWebSocketConnected,
+          currentConnectType: channelState.currentConnectType
+        });
         resolve(false);
         return;
-      }
-
-      // 如果连接暂时断开但数据通道可用，仍然可以尝试发送
-      if (!channelState.isConnected && channelState.state === 'connecting') {
-        console.warn(`WebRTC 连接暂时断开，但数据通道正在连接，继续尝试发送文件块 ${chunkIndex}`);
       }
 
       const chunkKey = `${fileId}-${chunkIndex}`;
@@ -443,8 +450,27 @@ export function useFileTransferBusiness(connection: IWebConnection) {
 
   // 安全发送文件
   const sendFileSecure = useCallback(async (file: File, fileId?: string) => {
-    if (connection.getConnectState().state !== 'open') {
-      updateState({ error: '连接未就绪' });
+    // 改进连接状态检查 - 使用更全面的连接状态判断
+    const connectState = connection.getConnectState();
+    const isReadyToSend =
+      connectState.state === 'open' ||                    // 数据通道已打开
+      connectState.isDataChannelConnected ||              // 数据通道已连接
+      connectState.isPeerConnected ||                     // P2P连接已建立
+      (connectState.isWebSocketConnected && connectState.currentConnectType === 'websocket'); // WebSocket降级模式
+
+    console.log('发送文件前连接状态检查:', {
+      state: connectState.state,
+      isDataChannelConnected: connectState.isDataChannelConnected,
+      isPeerConnected: connectState.isPeerConnected,
+      isWebSocketConnected: connectState.isWebSocketConnected,
+      currentConnectType: connectState.currentConnectType,
+      isReadyToSend
+    });
+
+    if (!isReadyToSend) {
+      const errorMsg = `连接未就绪 - 状态: ${connectState.state}, 数据通道: ${connectState.isDataChannelConnected}, P2P: ${connectState.isPeerConnected}, WebSocket: ${connectState.isWebSocketConnected}`;
+      console.error(errorMsg);
+      updateState({ error: errorMsg });
       return;
     }
 
@@ -488,16 +514,23 @@ export function useFileTransferBusiness(connection: IWebConnection) {
         let retryCount = 0;
 
         while (!success && retryCount <= MAX_RETRIES) {
-          // 检查数据通道状态，这是文件传输的实际通道
+          // 改进传输过程中的连接状态检查
           const channelState = connection.getConnectState();
-          if (channelState.state === 'closed') {
-            console.warn(`数据通道已关闭，停止文件传输`);
-            throw new Error('数据通道已关闭');
-          }
+          const isChannelUsable =
+            channelState.state === 'open' ||
+            channelState.isDataChannelConnected ||
+            channelState.isPeerConnected ||
+            (channelState.isWebSocketConnected && channelState.currentConnectType === 'websocket');
 
-          // 如果连接暂时断开但数据通道可用，仍然可以尝试发送
-          if (!connection.getConnectState().isConnected && channelState.state === 'connecting') {
-            console.warn(`WebRTC 连接暂时断开，但数据通道正在连接，继续尝试发送文件块 ${chunkIndex}`);
+          if (!isChannelUsable) {
+            console.warn(`数据传输通道不可用，停止文件传输:`, {
+              state: channelState.state,
+              isDataChannelConnected: channelState.isDataChannelConnected,
+              isPeerConnected: channelState.isPeerConnected,
+              isWebSocketConnected: channelState.isWebSocketConnected,
+              currentConnectType: channelState.currentConnectType
+            });
+            throw new Error('数据传输通道不可用');
           }
 
           const start = chunkIndex * chunkSize;
@@ -596,25 +629,25 @@ export function useFileTransferBusiness(connection: IWebConnection) {
 
   // 发送文件列表
   const sendFileList = useCallback((fileList: FileInfo[]) => {
-    // 检查连接状态 - 优先检查数据通道状态，因为 P2P 连接可能已经建立但状态未及时更新
+    // 改进连接状态检查逻辑
     const channelState = connection.getConnectState();
-    const peerConnected = channelState.isPeerConnected;
-    const dataChannelConnected = channelState.isDataChannelConnected;
-    const channelReadyState = channelState.state;
+    const isReadyToSend =
+      channelState.state === 'open' ||
+      channelState.isDataChannelConnected ||
+      channelState.isPeerConnected ||
+      (channelState.isWebSocketConnected && channelState.currentConnectType === 'websocket') ||
+      channelState.isConnected;
 
     console.log('发送文件列表检查:', {
-      channelState,
-      peerConnected,
-      dataChannelConnected,
-      channelReadyState,
+      state: channelState.state,
+      isDataChannelConnected: channelState.isDataChannelConnected,
+      isPeerConnected: channelState.isPeerConnected,
+      isWebSocketConnected: channelState.isWebSocketConnected,
+      currentConnectType: channelState.currentConnectType,
+      isConnected: channelState.isConnected,
+      isReadyToSend,
       fileListLength: fileList.length
     });
-
-    // 使用更宽松的条件检查连接状态
-    const isReadyToSend = channelReadyState === 'open' ||
-      dataChannelConnected ||
-      peerConnected ||
-      channelState.isConnected;
 
     if (isReadyToSend) {
       console.log('发送文件列表:', fileList.map(f => f.name));
@@ -629,42 +662,36 @@ export function useFileTransferBusiness(connection: IWebConnection) {
         // 不立即重试，让上层逻辑处理重试
       }
     } else {
-      console.log('连接未就绪，等待连接后再发送文件列表:', {
-        channelReadyState,
-        dataChannelConnected,
-        peerConnected,
-        isConnected: channelState.isConnected
-      });
+      console.log('连接未就绪，等待连接后再发送文件列表');
     }
   }, [connection]);
 
   // 请求文件
   const requestFile = useCallback((fileId: string, fileName: string) => {
     const channelState = connection.getConnectState();
-    const isChannelOpen = channelState.state === 'open';
-    const isDataChannelConnected = channelState.isDataChannelConnected;
-    const isPeerConnected = channelState.isPeerConnected;
-    const isConnected = channelState.isConnected;
+
+    // 统一的连接状态检查逻辑
+    const isReadyToRequest =
+      channelState.state === 'open' ||
+      channelState.isDataChannelConnected ||
+      channelState.isPeerConnected ||
+      (channelState.isWebSocketConnected && channelState.currentConnectType === 'websocket') ||
+      channelState.isConnected;
 
     console.log('请求文件前检查连接状态:', {
       fileName,
       fileId,
-      isChannelOpen,
-      isDataChannelConnected,
-      isPeerConnected,
-      isConnected
+      state: channelState.state,
+      isDataChannelConnected: channelState.isDataChannelConnected,
+      isPeerConnected: channelState.isPeerConnected,
+      isWebSocketConnected: channelState.isWebSocketConnected,
+      currentConnectType: channelState.currentConnectType,
+      isConnected: channelState.isConnected,
+      isReadyToRequest
     });
 
-    // 使用更宽松的条件检查连接状态
-    const isReadyToRequest = isChannelOpen || isDataChannelConnected || isPeerConnected || isConnected;
-
     if (!isReadyToRequest) {
-      console.error('数据通道未准备就绪，无法请求文件:', {
-        isChannelOpen,
-        isDataChannelConnected,
-        isPeerConnected,
-        isConnected
-      });
+      console.error('数据通道未准备就绪，无法请求文件');
       return;
     }
 

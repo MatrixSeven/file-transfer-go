@@ -15,16 +15,23 @@ interface ConnectionStatusProps {
 }
 
 // 连接状态枚举
-const getConnectionStatus = (currentRoom: { code: string; role: Role } | null) => {
-
-  const { getConnectState } = useReadConnectState(); // 确保状态管理器被初始化
-  const connection = getConnectState();
-  const isWebSocketConnected = connection?.isWebSocketConnected || false;
-  const isPeerConnected = connection?.isPeerConnected || false;
-  const isConnecting = connection?.isConnecting || false;
-  const error = connection?.error || null;
-  const currentConnectType = connection?.currentConnectType || 'webrtc';
-  const isJoinedRoom = connection?.isJoinedRoom || false;
+const getConnectionStatus = (
+  currentRoom: { code: string; role: Role } | null,
+  connection: {
+    isWebSocketConnected: boolean;
+    isPeerConnected: boolean;
+    isConnecting: boolean;
+    error: string | null;
+    currentConnectType: 'webrtc' | 'websocket';
+    isJoinedRoom: boolean;
+  }
+) => {
+  const isWebSocketConnected = connection.isWebSocketConnected;
+  const isPeerConnected = connection.isPeerConnected;
+  const isConnecting = connection.isConnecting;
+  const error = connection.error;
+  const currentConnectType = connection.currentConnectType;
+  const isJoinedRoom = connection.isJoinedRoom;
 
   if (!currentRoom) {
     return {
@@ -198,6 +205,10 @@ export function ConnectionStatus(props: ConnectionStatusProps) {
   // 使用全局WebRTC状态
   const webrtcState = useWebRTCStore();
 
+  // 获取连接状态
+  const { getConnectState } = useReadConnectState();
+  const connectionState = getConnectState();
+
   // 创建connection对象以兼容现有代码
   const connection = {
     isWebSocketConnected: webrtcState.isWebSocketConnected,
@@ -205,6 +216,7 @@ export function ConnectionStatus(props: ConnectionStatusProps) {
     isConnecting: webrtcState.isConnecting,
     error: webrtcState.error,
     currentConnectType: webrtcState.currentConnectType,
+    isJoinedRoom: connectionState?.isJoinedRoom || false,
   };
 
   const isConnected = webrtcState.isWebSocketConnected && webrtcState.isPeerConnected;
@@ -214,7 +226,7 @@ export function ConnectionStatus(props: ConnectionStatusProps) {
     return <span className={cn('text-sm text-slate-600', className)}>{getConnectionStatusText(connection)}</span>;
   }
 
-  const status = getConnectionStatus(currentRoom ?? null);
+  const status = getConnectionStatus(currentRoom ?? null, connection);
 
   if (compact) {
     return (
