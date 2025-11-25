@@ -73,7 +73,7 @@ export function WebRTCFileReceive({
   const validatePickupCode = async (code: string): Promise<boolean> => {
     try {
       setIsValidating(true);
-      
+      code = code.toUpperCase();
       console.log('开始验证取件码:', code);
       const response = await fetch(`/api/room-info?code=${code}`);
       const data = await response.json();

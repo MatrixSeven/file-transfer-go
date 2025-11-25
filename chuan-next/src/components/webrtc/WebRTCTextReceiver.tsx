@@ -131,6 +131,8 @@ export const WebRTCTextReceiver: React.FC<WebRTCTextReceiverProps> = ({
 
   // 验证并加入房间
   const joinRoom = useCallback(async (code: string) => {
+    const normalizedCode = code.toUpperCase(); // 添加这一行
+
     if (!code || code.length !== 6) return;
     
     setIsValidating(true);
