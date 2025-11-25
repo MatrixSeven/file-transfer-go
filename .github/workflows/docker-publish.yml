@@ -1,5 +1,5 @@
 
-name: 🐳 Build and Push Docker Image (AMD64)
+name: 🐳 Build and Push Docker Image 
 
 on:
   # 手动触发
@@ -27,7 +27,7 @@ on:
 
 env:
   REGISTRY: docker.io
-  IMAGE_NAME: matrixseven/file-transfer-go
+  IMAGE_NAME: yanelc/file-transfer-go
 
 jobs:
   build:
@@ -76,7 +76,7 @@ jobs:
       - name: 🏗️ Set build platform
         id: platforms
         run: |
-          echo "platforms=linux/amd64" >> $GITHUB_OUTPUT
+          echo "platforms=linux/amd64,linux/arm64" >> $GITHUB_OUTPUT
 
       - name: 🐳 Build and push Docker image
         uses: docker/build-push-action@v5
