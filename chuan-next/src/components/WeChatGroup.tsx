@@ -12,7 +12,7 @@ export default function WeChatGroup() {
                     <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-emerald-500 rounded-xl flex items-center justify-center mx-auto mb-4">
                         <Users className="w-6 h-6 text-white" />
                     </div>
-                    <h2 className="text-2xl font-bold text-slate-800 mb-2">加入微信交流群</h2>
+                    <h2 className="text-2xl font-bold text-slate-800 mb-2">加入QQ交流群</h2>
                     <p className="text-slate-600 text-lg">
                         佬们有意见/建议/bug反馈或者奇思妙想想来交流，可以扫码加入
                     </p>
@@ -24,8 +24,8 @@ export default function WeChatGroup() {
                         {/* 微信群二维码 - 请将此区域替换为实际的二维码图片 */}
                         <div className="relative">
                             <img
-                                src="https://cdn-img.luxika.cc//i/2025/09/04/68b8f0d135edc.png"
-                                alt="微信群二维码"
+                                src="https://5xupt.luxika.cc/u/3ae7a53d-0efa-4341-9694-85c16dd6a597.png"
+                                alt="QQ群二维码"
                                 className="w-64 h-64 rounded-xl"
                             />
                         </div>

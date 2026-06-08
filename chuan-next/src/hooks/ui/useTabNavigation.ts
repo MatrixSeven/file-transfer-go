@@ -13,7 +13,7 @@ const TAB_NAMES: Record<TabType, string> = {
   webrtc: '文件传输',
   message: '文字传输',
   desktop: '桌面共享',
-  wechat: '微信群',
+  wechat: '交流反馈',
   settings: '设置'
 };
 

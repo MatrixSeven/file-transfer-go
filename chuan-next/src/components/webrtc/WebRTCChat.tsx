@@ -458,7 +458,7 @@ export const WebRTCChat: React.FC = () => {
                         e.target.value.replace(
                           /[^123456789ABCDEFGHIJKLMNPQRSTUVWXYZabcdefghijklmnpqrstuvwxyz]/g,
                           '',
-                        ),
+                        ).toUpperCase(),
                       )
                     }
                     placeholder="请输入取件码"

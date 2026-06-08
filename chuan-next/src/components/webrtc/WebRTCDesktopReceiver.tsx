@@ -207,7 +207,7 @@ export default function WebRTCDesktopReceiver({ className, initialCode, onConnec
                   <div className="relative">
                     <Input
                       value={inputCode}
-                      onChange={(e) => setInputCode(e.target.value.replace(/[^123456789ABCDEFGHIJKLMNPQRSTUVWXYZabcdefghijklmnpqrstuvwxyz]/g, ''))}
+                      onChange={(e) => setInputCode(e.target.value.replace(/[^123456789ABCDEFGHIJKLMNPQRSTUVWXYZabcdefghijklmnpqrstuvwxyz]/g, '').toUpperCase())}
                       placeholder="请输入房间代码"
                       className="text-center text-2xl sm:text-3xl tracking-[0.3em] sm:tracking-[0.5em] font-mono h-12 sm:h-16 border-2 border-slate-200 rounded-xl focus:border-purple-500 focus:ring-purple-500 bg-white/80 backdrop-blur-sm pb-2 sm:pb-4"
                       maxLength={6}

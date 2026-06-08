@@ -9,7 +9,7 @@
 
 
 
-## ✨ 核心功能[端到端数据传输完全基于WebRTC的P2P直连]
+## ✨ 核心功能[端到端数据传输完全基于WebRTC的P2P直连/文件在线传输]
 <div align="center">
 
 ![React](https://img.shields.io/badge/React-18-blue.svg)
